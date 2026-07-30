@@ -1,0 +1,22 @@
+[project]
+name = "holo-py"
+version = "0.1.0"
+description = "Desk-surface tap zone detection for macOS, using acoustic features from the built-in mic."
+requires-python = ">=3.10"
+dependencies = [
+    "sounddevice>=0.4.6",
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "scikit-learn>=1.4",
+    "rumps>=0.4.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["holo*"]

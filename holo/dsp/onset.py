@@ -1,0 +1,49 @@
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+
+import numpy as np
+
+from holo.config import ONSET_ENERGY_MULTIPLIER, SAMPLE_RATE
+
+
+def rms(block: np.ndarray) -> float:
+    return float(np.sqrt(np.mean(np.square(block)) + 1e-12))
+
+
+@dataclass
+class OnsetDetector:
+    """Adaptive energy-threshold impulse detector.
+
+    Tracks a slow-moving noise floor and fires when a block's RMS spikes
+    above it by ONSET_ENERGY_MULTIPLIER, with a short refractory period so
+    a single tap doesn't trigger multiple times.
+    """
+
+    sample_rate: int = SAMPLE_RATE
+    noise_floor_alpha: float = 0.05
+    refractory_blocks: int = 8
+
+    _noise_floor: float = field(default=1e-4, init=False)
+    _refractory_count: int = field(default=0, init=False)
+
+    def process(self, block: np.ndarray) -> bool:
+        level = rms(block)
+
+        if self._refractory_count > 0:
+            self._refractory_count -= 1
+            self._noise_floor = (
+                1 - self.noise_floor_alpha
+            ) * self._noise_floor + self.noise_floor_alpha * level
+            return False
+
+        is_onset = level > self._noise_floor * ONSET_ENERGY_MULTIPLIER
+
+        if is_onset:
+            self._refractory_count = self.refractory_blocks
+        else:
+            self._noise_floor = (
+                1 - self.noise_floor_alpha
+            ) * self._noise_floor + self.noise_floor_alpha * level
+
+        return is_onset
