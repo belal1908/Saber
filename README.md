@@ -1,8 +1,8 @@
-# holo-py
+# Saber
 
 A Python/macOS reimplementation of [Holo](https://github.com/JustinGamer191/Holo) — turns the desk around your MacBook into four tap zones (rear-left, rear-right, front-left, front-right) using acoustic classification of tap impulses picked up by the mic.
 
-Same pipeline as the original Swift app, different stack: `sounddevice` for mic capture, `numpy`/`scipy` for FFT and MFCC-style feature extraction, `scikit-learn` for the zone classifier, `rumps` for the menu-bar shell.
+Same pipeline as the original Swift app, different stack: `sounddevice` for mic capture, `numpy`/`scipy` for FFT, MFCC-style feature extraction, and adaptive noise filtering, `scikit-learn` for the zone classifier, `rumps` for the menu-bar shell.
 
 ## Setup
 
@@ -16,11 +16,19 @@ macOS will prompt for microphone access the first time the app runs — grant it
 
 ## Calibrate (train the zone classifier)
 
+Passive mode (tap each zone, detected via onset threshold):
+
 ```bash
 python -m holo.model.train --samples-per-zone 15
 ```
 
-Follow the prompts: tap each zone the requested number of times. Saves weights to `data/model.json`.
+Active-probe mode (fires a 15.5–21kHz chirp and classifies the desk's response instead of waiting for a tap):
+
+```bash
+python -m holo.model.train --samples-per-zone 15 --use-probe
+```
+
+Both modes track ambient noise (fan, typing, music) and subtract it from the impulse/response spectrum before extracting features, so training-time and runtime features stay matched. Follow the prompts: tap (or probe) each zone the requested number of times. Saves weights to `data/model.json`.
 
 ## Configure zone actions
 
@@ -32,7 +40,7 @@ Edit `data/zone_config.json` (created on first run) to map each zone to a `shell
 python -m holo.app
 ```
 
-Starts a menu-bar icon (◎) with Start/Stop Listening controls.
+Starts a menu-bar icon (◎) with Start/Stop Listening controls. Runs in passive tap-detection mode with the same live adaptive noise filtering used during training.
 
 ## Tests
 
@@ -44,12 +52,14 @@ pytest
 
 ```
 holo/
-├── audio/capture.py     # sounddevice mic stream + ring buffer
-├── dsp/onset.py          # adaptive energy-threshold tap detection
-├── dsp/features.py       # FFT -> mel filterbank -> MFCC + spectral shape
-├── model/classifier.py   # regularized logistic regression, JSON-persisted
-├── model/train.py        # interactive calibration CLI
-├── actions/dispatch.py   # zone -> shell/AppleScript/keystroke
-├── actions/registry.py   # zone -> action JSON config
-└── app.py                # rumps menu-bar app tying it together
+├── audio/capture.py         # sounddevice mic stream + ring buffer
+├── audio/probe.py            # active chirp probe (15.5-21kHz) emit/capture
+├── dsp/onset.py               # adaptive energy-threshold tap detection
+├── dsp/adaptive_filter.py     # spectral subtraction against tracked ambient noise
+├── dsp/features.py            # FFT -> mel filterbank -> MFCC + spectral shape
+├── model/classifier.py        # regularized logistic regression, JSON-persisted
+├── model/train.py             # interactive calibration CLI (passive or probe)
+├── actions/dispatch.py        # zone -> shell/AppleScript/keystroke
+├── actions/registry.py        # zone -> action JSON config
+└── app.py                     # rumps menu-bar app tying it together
 ```
