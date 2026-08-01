@@ -12,6 +12,7 @@ from holo.actions.dispatch import dispatch
 from holo.actions.registry import load_actions
 from holo.audio.capture import AudioCapture
 from holo.config import IMPULSE_WINDOW_MS, MODEL_PATH, SAMPLE_RATE
+from holo.dsp.adaptive_filter import AdaptiveNoiseFilter
 from holo.dsp.features import extract_features
 from holo.dsp.onset import OnsetDetector
 from holo.model.classifier import ZoneClassifier
@@ -26,6 +27,7 @@ class HoloApp(rumps.App):
         self.classifier: ZoneClassifier | None = None
         self.listening = False
         self.window_len = int(SAMPLE_RATE * IMPULSE_WINDOW_MS / 1000)
+        self.noise_filter = AdaptiveNoiseFilter(fft_size=self.window_len)
 
         if MODEL_PATH.exists():
             self.classifier = ZoneClassifier.load()
@@ -59,15 +61,22 @@ class HoloApp(rumps.App):
         except Exception:
             return
 
-        if self.detector.process(block):
-            window = self.capture.recent_audio()[-self.window_len :]
-            if len(window) < self.window_len:
-                return
-            features = extract_features(window)
-            zone = self.classifier.predict(features)
-            action = self.actions.get(zone)
-            if action:
-                dispatch(zone, action)
+        is_onset = self.detector.process(block)
+
+        if not is_onset:
+            background = self.capture.recent_audio()[-self.window_len :]
+            if len(background) == self.window_len:
+                self.noise_filter.update(background)
+            return
+
+        window = self.capture.recent_audio()[-self.window_len :]
+        if len(window) < self.window_len:
+            return
+        features = extract_features(window, noise_filter=self.noise_filter)
+        zone = self.classifier.predict(features)
+        action = self.actions.get(zone)
+        if action:
+            dispatch(zone, action)
 
 
 def main() -> None:

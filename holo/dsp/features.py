@@ -4,6 +4,7 @@ import numpy as np
 from scipy.fft import rfft, rfftfreq
 
 from holo.config import SAMPLE_RATE
+from holo.dsp.adaptive_filter import AdaptiveNoiseFilter
 
 N_MEL_FILTERS = 20
 N_MFCC = 13
@@ -32,10 +33,17 @@ def _mel_filterbank(n_fft: int, sample_rate: int, n_filters: int) -> np.ndarray:
     return bank
 
 
-def extract_features(window: np.ndarray, sample_rate: int = SAMPLE_RATE) -> np.ndarray:
-    """FFT -> mel filterbank -> log -> DCT (MFCC-style) plus spectral shape features."""
+def extract_features(
+    window: np.ndarray,
+    sample_rate: int = SAMPLE_RATE,
+    noise_filter: AdaptiveNoiseFilter | None = None,
+) -> np.ndarray:
+    """FFT -> (optional adaptive noise subtraction) -> mel filterbank -> log -> DCT (MFCC-style)
+    plus spectral shape features."""
     windowed = window * np.hanning(len(window))
     spectrum = np.abs(rfft(windowed))
+    if noise_filter is not None:
+        spectrum = noise_filter.apply(spectrum)
     n_fft = len(window)
 
     bank = _mel_filterbank(n_fft, sample_rate, N_MEL_FILTERS)
