@@ -11,6 +11,7 @@ import time
 import numpy as np
 
 from holo.audio.capture import AudioCapture
+from holo.audio.probe import emit_and_capture, response_window
 from holo.config import IMPULSE_WINDOW_MS, SAMPLE_RATE, ZONES
 from holo.dsp.features import extract_features
 from holo.dsp.onset import OnsetDetector
@@ -35,25 +36,47 @@ def record_zone_samples(capture: AudioCapture, detector: OnsetDetector, zone: st
     return samples
 
 
+def record_zone_samples_probe(zone: str, n: int, device: int | str | None) -> list[np.ndarray]:
+    """Active-probe alternative: fire a chirp per sample instead of waiting for a tap."""
+    print(f"\nRest a hand/object on '{zone}' and press Enter {n} times (or hold still for ambient probes).")
+    samples: list[np.ndarray] = []
+    for i in range(n):
+        input(f"  probe {i + 1}/{n} — Enter to fire...")
+        recording = emit_and_capture(device=device)
+        samples.append(extract_features(response_window(recording)))
+    return samples
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--samples-per-zone", type=int, default=15)
     parser.add_argument("--device", default=None)
+    parser.add_argument(
+        "--use-probe",
+        action="store_true",
+        help="Use the active chirp probe instead of passive tap detection.",
+    )
     args = parser.parse_args()
 
-    capture = AudioCapture(device=args.device)
-    detector = OnsetDetector()
-    capture.start()
-
     X, y = [], []
-    try:
+
+    if args.use_probe:
         for zone in ZONES:
-            input(f"Press Enter, then tap '{zone}'...")
-            samples = record_zone_samples(capture, detector, zone, args.samples_per_zone)
+            samples = record_zone_samples_probe(zone, args.samples_per_zone, args.device)
             X.extend(samples)
             y.extend([zone] * len(samples))
-    finally:
-        capture.stop()
+    else:
+        capture = AudioCapture(device=args.device)
+        detector = OnsetDetector()
+        capture.start()
+        try:
+            for zone in ZONES:
+                input(f"Press Enter, then tap '{zone}'...")
+                samples = record_zone_samples(capture, detector, zone, args.samples_per_zone)
+                X.extend(samples)
+                y.extend([zone] * len(samples))
+        finally:
+            capture.stop()
 
     clf = ZoneClassifier.fit(np.array(X), y)
     clf.save()
