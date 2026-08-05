@@ -42,6 +42,15 @@ python -m holo.app
 
 Starts a menu-bar icon (◎) with Start/Stop Listening controls. Runs in passive tap-detection mode with the same live adaptive noise filtering used during training.
 
+## Build a standalone .app
+
+```bash
+pip install -e ".[build]"
+python setup.py py2app
+```
+
+Produces `dist/Saber.app` — a double-clickable menu-bar app that needs no terminal or venv. It requests mic access via the `NSMicrophoneUsageDescription` in its bundled `Info.plist`, and runs with no Dock icon (menu-bar only). Because it bundles numpy/scipy/scikit-learn, the build can take a few minutes.
+
 ## Tests
 
 ```bash

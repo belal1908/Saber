@@ -1,5 +1,5 @@
 [project]
-name = "holo-py"
+name = "saber"
 version = "0.1.0"
 description = "Desk-surface tap zone detection for macOS, using acoustic features from the built-in mic."
 requires-python = ">=3.10"
@@ -13,6 +13,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
+build = ["py2app>=0.28"]
 
 [build-system]
 requires = ["setuptools>=68"]
