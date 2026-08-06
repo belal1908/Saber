@@ -61,16 +61,30 @@ def record_zone_samples_probe(zone: str, n: int, device: int | str | None) -> li
     return samples
 
 
+def print_devices() -> None:
+    for entry in AudioCapture.list_devices():
+        print(f"[{entry['index']}] {entry['name']} (in: {entry['max_input_channels']} ch)")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--samples-per-zone", type=int, default=15)
-    parser.add_argument("--device", default=None)
+    parser.add_argument("--device", default=None, help="Input device index or name (see --list-devices).")
+    parser.add_argument(
+        "--list-devices",
+        action="store_true",
+        help="List available input devices and exit.",
+    )
     parser.add_argument(
         "--use-probe",
         action="store_true",
         help="Use the active chirp probe instead of passive tap detection.",
     )
     args = parser.parse_args()
+
+    if args.list_devices:
+        print_devices()
+        return
 
     X, y = [], []
 

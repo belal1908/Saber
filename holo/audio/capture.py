@@ -22,7 +22,7 @@ class AudioCapture:
     def __post_init__(self) -> None:
         ring_len = int(self.sample_rate * self.ring_seconds)
         self._ring: deque[np.ndarray] = deque(maxlen=ring_len // self.block_size + 1)
-        self._blocks: "queue.Queue[np.ndarray]" = queue.Queue()
+        self._blocks: queue.Queue[np.ndarray] = queue.Queue()
         self._stream: sd.InputStream | None = None
 
     def _callback(self, indata, frames, time_info, status) -> None:  # noqa: ANN001
@@ -60,4 +60,10 @@ class AudioCapture:
 
     @staticmethod
     def list_devices() -> list[dict]:
-        return [d for d in sd.query_devices() if d["max_input_channels"] > 0]
+        """Input-capable devices, each annotated with its true sounddevice index
+        (the position in the *unfiltered* device list, i.e. what --device expects)."""
+        devices = []
+        for index, d in enumerate(sd.query_devices()):
+            if d["max_input_channels"] > 0:
+                devices.append({**d, "index": index})
+        return devices

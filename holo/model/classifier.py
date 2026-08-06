@@ -16,7 +16,7 @@ class ZoneClassifier:
     intercept: np.ndarray
 
     @classmethod
-    def fit(cls, X: np.ndarray, y: list[str]) -> "ZoneClassifier":
+    def fit(cls, X: np.ndarray, y: list[str]) -> ZoneClassifier:
         clf = LogisticRegression(C=1.0, max_iter=2000)
         clf.fit(X, y)
         return cls(classes=list(clf.classes_), coef=clf.coef_, intercept=clf.intercept_)
@@ -38,7 +38,7 @@ class ZoneClassifier:
         )
 
     @classmethod
-    def load(cls, path=MODEL_PATH) -> "ZoneClassifier":
+    def load(cls, path=MODEL_PATH) -> ZoneClassifier:
         data = json.loads(path.read_text())
         return cls(
             classes=data["classes"],

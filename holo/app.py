@@ -5,7 +5,6 @@ Requires a trained model at data/model.json (see holo/model/train.py).
 """
 from __future__ import annotations
 
-import numpy as np
 import rumps
 
 from holo.actions.dispatch import dispatch
