@@ -66,10 +66,25 @@ def print_devices() -> None:
         print(f"[{entry['index']}] {entry['name']} (in: {entry['max_input_channels']} ch)")
 
 
+def _parse_device(value: str) -> int | str:
+    """--device accepts either a numeric index (see --list-devices) or a device
+    name substring. sounddevice treats str devices as name matches, not indices,
+    so a numeric-looking value must be converted to int or index lookups break."""
+    try:
+        return int(value)
+    except ValueError:
+        return value
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--samples-per-zone", type=int, default=15)
-    parser.add_argument("--device", default=None, help="Input device index or name (see --list-devices).")
+    parser.add_argument(
+        "--device",
+        default=None,
+        type=_parse_device,
+        help="Input device index or name (see --list-devices).",
+    )
     parser.add_argument(
         "--list-devices",
         action="store_true",
@@ -109,7 +124,7 @@ def main() -> None:
             capture.stop()
 
     mode = "probe" if args.use_probe else "passive"
-    clf = ZoneClassifier.fit(np.array(X), y, mode=mode)
+    clf = ZoneClassifier.fit(np.array(X), y, mode=mode, device=args.device)
     clf.save()
     print(f"\nSaved {mode}-mode model to {MODEL_PATH}")
 

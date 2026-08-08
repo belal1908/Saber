@@ -30,26 +30,37 @@ def test_fit_records_probe_mode():
     assert clf.mode == "probe"
 
 
-def test_save_load_round_trip_preserves_mode(tmp_path):
+def test_save_load_round_trip_preserves_mode_and_device(tmp_path):
     X, y = _toy_dataset()
-    clf = ZoneClassifier.fit(X, y, mode="probe")
+    clf = ZoneClassifier.fit(X, y, mode="probe", device=2)
     path = tmp_path / "model.json"
     clf.save(path)
 
     loaded = ZoneClassifier.load(path)
     assert loaded.mode == "probe"
+    assert loaded.device == 2
     assert loaded.classes == clf.classes
     assert np.allclose(loaded.coef, clf.coef)
     assert np.allclose(loaded.intercept, clf.intercept)
 
 
+def test_save_load_round_trip_preserves_string_device_name(tmp_path):
+    X, y = _toy_dataset()
+    clf = ZoneClassifier.fit(X, y, device="USB Mic")
+    path = tmp_path / "model.json"
+    clf.save(path)
+
+    assert ZoneClassifier.load(path).device == "USB Mic"
+
+
 def test_load_defaults_to_passive_for_models_saved_before_mode_tracking(tmp_path):
-    """Older model.json files won't have a "mode" key — must not crash, must assume passive."""
+    """Older model.json files won't have "mode"/"device" keys — must not crash, must use safe defaults."""
     path = tmp_path / "model.json"
     path.write_text(json.dumps({"classes": ZONES, "coef": [[0.0] * 4] * 4, "intercept": [0.0] * 4}))
 
     loaded = ZoneClassifier.load(path)
     assert loaded.mode == "passive"
+    assert loaded.device is None
 
 
 def test_predict_picks_highest_scoring_zone():

@@ -21,7 +21,6 @@ from holo.model.classifier import ZoneClassifier
 class HoloApp(rumps.App):
     def __init__(self) -> None:
         super().__init__("Holo", title="◎")
-        self.capture = AudioCapture()
         self.detector = OnsetDetector()
         self.actions = load_actions()
         self.classifier: ZoneClassifier | None = None
@@ -33,6 +32,11 @@ class HoloApp(rumps.App):
             self.classifier = ZoneClassifier.load()
         else:
             rumps.alert("No trained model found. Run: python -m holo.model.train")
+
+        # Use the same input device the model was trained against, so runtime
+        # inference doesn't silently fall back to whatever the OS default happens to be.
+        device = self.classifier.device if self.classifier is not None else None
+        self.capture = AudioCapture(device=device)
 
         self.menu = ["Start Listening", "Stop Listening"]
 
