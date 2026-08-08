@@ -12,7 +12,7 @@ import numpy as np
 
 from holo.audio.capture import AudioCapture
 from holo.audio.probe import emit_and_capture, response_window
-from holo.config import IMPULSE_WINDOW_MS, SAMPLE_RATE, ZONES
+from holo.config import IMPULSE_WINDOW_MS, MODEL_PATH, SAMPLE_RATE, ZONES
 from holo.dsp.adaptive_filter import AdaptiveNoiseFilter
 from holo.dsp.features import extract_features
 from holo.dsp.onset import OnsetDetector
@@ -108,9 +108,10 @@ def main() -> None:
         finally:
             capture.stop()
 
-    clf = ZoneClassifier.fit(np.array(X), y)
+    mode = "probe" if args.use_probe else "passive"
+    clf = ZoneClassifier.fit(np.array(X), y, mode=mode)
     clf.save()
-    print(f"\nSaved model to {clf}")
+    print(f"\nSaved {mode}-mode model to {MODEL_PATH}")
 
 
 if __name__ == "__main__":

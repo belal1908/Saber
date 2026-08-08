@@ -1,0 +1,60 @@
+import json
+
+import numpy as np
+
+from holo.model.classifier import ZoneClassifier
+
+ZONES = ["rear-left", "rear-right", "front-left", "front-right"]
+
+
+def _toy_dataset():
+    rng = np.random.default_rng(0)
+    X, y = [], []
+    for i, zone in enumerate(ZONES):
+        center = np.eye(len(ZONES))[i] * 5.0
+        for _ in range(10):
+            X.append(center + rng.normal(scale=0.1, size=len(ZONES)))
+            y.append(zone)
+    return np.array(X), y
+
+
+def test_fit_defaults_to_passive_mode():
+    X, y = _toy_dataset()
+    clf = ZoneClassifier.fit(X, y)
+    assert clf.mode == "passive"
+
+
+def test_fit_records_probe_mode():
+    X, y = _toy_dataset()
+    clf = ZoneClassifier.fit(X, y, mode="probe")
+    assert clf.mode == "probe"
+
+
+def test_save_load_round_trip_preserves_mode(tmp_path):
+    X, y = _toy_dataset()
+    clf = ZoneClassifier.fit(X, y, mode="probe")
+    path = tmp_path / "model.json"
+    clf.save(path)
+
+    loaded = ZoneClassifier.load(path)
+    assert loaded.mode == "probe"
+    assert loaded.classes == clf.classes
+    assert np.allclose(loaded.coef, clf.coef)
+    assert np.allclose(loaded.intercept, clf.intercept)
+
+
+def test_load_defaults_to_passive_for_models_saved_before_mode_tracking(tmp_path):
+    """Older model.json files won't have a "mode" key — must not crash, must assume passive."""
+    path = tmp_path / "model.json"
+    path.write_text(json.dumps({"classes": ZONES, "coef": [[0.0] * 4] * 4, "intercept": [0.0] * 4}))
+
+    loaded = ZoneClassifier.load(path)
+    assert loaded.mode == "passive"
+
+
+def test_predict_picks_highest_scoring_zone():
+    X, y = _toy_dataset()
+    clf = ZoneClassifier.fit(X, y)
+    for i, zone in enumerate(ZONES):
+        probe_features = np.eye(len(ZONES))[i] * 5.0
+        assert clf.predict(probe_features) == zone

@@ -15,3 +15,6 @@ ONSET_ENERGY_MULTIPLIER = 4.0  # spike must exceed noise floor * this
 IMPULSE_WINDOW_MS = 80
 
 ZONES = ["rear-left", "rear-right", "front-left", "front-right"]
+
+# How often the runtime app fires a chirp when using a probe-mode model
+PROBE_POLL_INTERVAL_S = 0.5

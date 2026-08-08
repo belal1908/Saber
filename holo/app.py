@@ -10,7 +10,8 @@ import rumps
 from holo.actions.dispatch import dispatch
 from holo.actions.registry import load_actions
 from holo.audio.capture import AudioCapture
-from holo.config import IMPULSE_WINDOW_MS, MODEL_PATH, SAMPLE_RATE
+from holo.audio.probe import emit_and_capture, response_window
+from holo.config import IMPULSE_WINDOW_MS, MODEL_PATH, PROBE_POLL_INTERVAL_S, SAMPLE_RATE
 from holo.dsp.adaptive_filter import AdaptiveNoiseFilter
 from holo.dsp.features import extract_features
 from holo.dsp.onset import OnsetDetector
@@ -39,10 +40,13 @@ class HoloApp(rumps.App):
     def start(self, _) -> None:
         if self.listening or self.classifier is None:
             return
-        self.capture.start()
         self.listening = True
         self.title = "◉"
-        self.poll_timer = rumps.Timer(self.poll, 0.02)
+        if self.classifier.mode == "probe":
+            self.poll_timer = rumps.Timer(self.poll_probe, PROBE_POLL_INTERVAL_S)
+        else:
+            self.capture.start()
+            self.poll_timer = rumps.Timer(self.poll_passive, 0.02)
         self.poll_timer.start()
 
     @rumps.clicked("Stop Listening")
@@ -50,11 +54,12 @@ class HoloApp(rumps.App):
         if not self.listening:
             return
         self.poll_timer.stop()
-        self.capture.stop()
+        if self.classifier.mode != "probe":
+            self.capture.stop()
         self.listening = False
         self.title = "◎"
 
-    def poll(self, _timer) -> None:
+    def poll_passive(self, _timer) -> None:
         try:
             block = self.capture.next_block(timeout=0.0)
         except Exception:
@@ -72,6 +77,14 @@ class HoloApp(rumps.App):
         if len(window) < self.window_len:
             return
         features = extract_features(window, noise_filter=self.noise_filter)
+        self._dispatch_for(features)
+
+    def poll_probe(self, _timer) -> None:
+        recording = emit_and_capture(device=self.capture.device)
+        features = extract_features(response_window(recording))
+        self._dispatch_for(features)
+
+    def _dispatch_for(self, features) -> None:
         zone = self.classifier.predict(features)
         action = self.actions.get(zone)
         if action:

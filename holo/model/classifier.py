@@ -14,12 +14,13 @@ class ZoneClassifier:
     classes: list[str]
     coef: np.ndarray
     intercept: np.ndarray
+    mode: str = "passive"  # "passive" (tap detection) or "probe" (active chirp)
 
     @classmethod
-    def fit(cls, X: np.ndarray, y: list[str]) -> ZoneClassifier:
+    def fit(cls, X: np.ndarray, y: list[str], mode: str = "passive") -> ZoneClassifier:
         clf = LogisticRegression(C=1.0, max_iter=2000)
         clf.fit(X, y)
-        return cls(classes=list(clf.classes_), coef=clf.coef_, intercept=clf.intercept_)
+        return cls(classes=list(clf.classes_), coef=clf.coef_, intercept=clf.intercept_, mode=mode)
 
     def predict(self, features: np.ndarray) -> str:
         logits = self.coef @ features + self.intercept
@@ -33,6 +34,7 @@ class ZoneClassifier:
                     "classes": self.classes,
                     "coef": self.coef.tolist(),
                     "intercept": self.intercept.tolist(),
+                    "mode": self.mode,
                 }
             )
         )
@@ -44,4 +46,5 @@ class ZoneClassifier:
             classes=data["classes"],
             coef=np.array(data["coef"]),
             intercept=np.array(data["intercept"]),
+            mode=data.get("mode", "passive"),  # models saved before mode tracking default to passive
         )

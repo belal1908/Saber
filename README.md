@@ -40,7 +40,7 @@ Edit `data/zone_config.json` (created on first run) to map each zone to a `shell
 python -m holo.app
 ```
 
-Starts a menu-bar icon (◎) with Start/Stop Listening controls. Runs in passive tap-detection mode with the same live adaptive noise filtering used during training.
+Starts a menu-bar icon (◎) with Start/Stop Listening controls. The app reads which mode the loaded `data/model.json` was trained in (`passive` or `probe`, recorded automatically by `holo.model.train`) and matches its runtime feature extraction to it — passive mode listens continuously with the same live adaptive noise filtering used during training; probe mode fires a chirp every `PROBE_POLL_INTERVAL_S` (0.5s by default, see `holo/config.py`) and classifies the response.
 
 ## Build a standalone .app
 
