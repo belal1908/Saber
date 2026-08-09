@@ -69,3 +69,25 @@ def test_predict_picks_highest_scoring_zone():
     for i, zone in enumerate(ZONES):
         probe_features = np.eye(len(ZONES))[i] * 5.0
         assert clf.predict(probe_features) == zone
+
+
+def test_scores_sum_to_one_and_agree_with_predict():
+    X, y = _toy_dataset()
+    clf = ZoneClassifier.fit(X, y)
+    for i, zone in enumerate(ZONES):
+        features = np.eye(len(ZONES))[i] * 5.0
+        scores = clf.scores(features)
+        assert set(scores) == set(ZONES)
+        assert abs(sum(scores.values()) - 1.0) < 1e-9
+        assert max(scores, key=scores.get) == clf.predict(features) == zone
+
+
+def test_scores_reflect_uncertainty_for_ambiguous_input():
+    """Equidistant features should come out close to uniform, not confidently
+    wrong for one class — this is exactly what a "random-looking" real-world
+    misclassification would look like under the hood."""
+    X, y = _toy_dataset()
+    clf = ZoneClassifier.fit(X, y)
+    ambiguous = np.zeros(len(ZONES))
+    scores = clf.scores(ambiguous)
+    assert max(scores.values()) < 0.9

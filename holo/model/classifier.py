@@ -39,6 +39,15 @@ class ZoneClassifier:
         logits = self.coef @ features + self.intercept
         return self.classes[int(np.argmax(logits))]
 
+    def scores(self, features: np.ndarray) -> dict[str, float]:
+        """Per-zone confidence (softmax over logits), for diagnosing whether a
+        wrong prediction was a close call or the classes aren't separating at all."""
+        logits = self.coef @ features + self.intercept
+        shifted = logits - np.max(logits)  # numerically stable softmax
+        exp = np.exp(shifted)
+        probs = exp / exp.sum()
+        return dict(zip(self.classes, (float(p) for p in probs)))
+
     def save(self, path=MODEL_PATH) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(

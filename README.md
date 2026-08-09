@@ -34,6 +34,14 @@ Both modes track ambient noise (fan, typing, music) and subtract it from the imp
 
 Edit `~/Library/Application Support/Saber/zone_config.json` (created on first run) to map each zone to a `shell`, `applescript`, or `keystroke` action. See `holo/actions/dispatch.py` for the supported action types.
 
+## Diagnose misclassifications
+
+If predictions seem wrong or inconsistent, `holo.model.diagnose` shows the full per-zone confidence for each tap/probe instead of just the winning zone — a close call (e.g. 55% vs 40%) means more/cleaner training data would help; near-uniform scores across all four zones mean the features aren't separating well on your desk/mic at all.
+
+```bash
+python -m holo.model.diagnose
+```
+
 ## Run
 
 ```bash
@@ -68,6 +76,7 @@ holo/
 ├── dsp/features.py            # FFT -> mel filterbank -> MFCC + spectral shape
 ├── model/classifier.py        # regularized logistic regression, JSON-persisted
 ├── model/train.py             # interactive calibration CLI (passive or probe)
+├── model/diagnose.py          # live per-zone confidence scores for a trained model
 ├── actions/dispatch.py        # zone -> shell/AppleScript/keystroke
 ├── actions/registry.py        # zone -> action JSON config
 └── app.py                     # rumps menu-bar app tying it together
