@@ -27,5 +27,8 @@ jobs:
       - name: Lint
         run: ruff check .
 
+      - name: Type check
+        run: mypy holo
+
       - name: Run tests
         run: pytest -q

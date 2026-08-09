@@ -57,6 +57,7 @@ class HoloApp(rumps.App):
     def stop(self, _) -> None:
         if not self.listening:
             return
+        assert self.classifier is not None  # listening implies start() passed its None-check
         self.poll_timer.stop()
         if self.classifier.mode != "probe":
             self.capture.stop()
@@ -89,6 +90,7 @@ class HoloApp(rumps.App):
         self._dispatch_for(features)
 
     def _dispatch_for(self, features) -> None:
+        assert self.classifier is not None  # only called while listening (see start())
         zone = self.classifier.predict(features)
         action = self.actions.get(zone)
         if action:
