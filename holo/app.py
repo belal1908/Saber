@@ -1,7 +1,8 @@
 """Menu-bar app: listens for taps and dispatches zone actions.
 
 Run with: python -m holo.app
-Requires a trained model at data/model.json (see holo/model/train.py).
+Requires a trained model (see holo/model/train.py), stored under
+~/Library/Application Support/Saber/model.json.
 """
 from __future__ import annotations
 

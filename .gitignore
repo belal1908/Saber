@@ -3,8 +3,6 @@ __pycache__/
 .venv/
 venv/
 *.egg-info/
-data/model.json
-data/zone_config.json
 .DS_Store
 build/
 dist/

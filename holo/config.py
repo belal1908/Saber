@@ -1,6 +1,11 @@
 from pathlib import Path
 
-DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+# Not project-relative (Path(__file__).parent.parent / "data") on purpose: inside
+# a py2app bundle, pure-Python modules are zipped into python3XX.zip, so __file__
+# resolves to a path *inside* that zip archive and any path arithmetic off it
+# treats the zip file itself as if it were a directory, breaking mkdir(). Standard
+# macOS per-user app data location works identically in dev and packaged builds.
+DATA_DIR = Path.home() / "Library" / "Application Support" / "Saber"
 MODEL_PATH = DATA_DIR / "model.json"
 ZONE_CONFIG_PATH = DATA_DIR / "zone_config.json"
 

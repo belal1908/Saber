@@ -28,11 +28,11 @@ Active-probe mode (fires a 15.5–21kHz chirp and classifies the desk's response
 python -m holo.model.train --samples-per-zone 15 --use-probe
 ```
 
-Both modes track ambient noise (fan, typing, music) and subtract it from the impulse/response spectrum before extracting features, so training-time and runtime features stay matched. Follow the prompts: tap (or probe) each zone the requested number of times. Saves weights to `data/model.json`.
+Both modes track ambient noise (fan, typing, music) and subtract it from the impulse/response spectrum before extracting features, so training-time and runtime features stay matched. Follow the prompts: tap (or probe) each zone the requested number of times. Saves weights to `~/Library/Application Support/Saber/model.json`.
 
 ## Configure zone actions
 
-Edit `data/zone_config.json` (created on first run) to map each zone to a `shell`, `applescript`, or `keystroke` action. See `holo/actions/dispatch.py` for the supported action types.
+Edit `~/Library/Application Support/Saber/zone_config.json` (created on first run) to map each zone to a `shell`, `applescript`, or `keystroke` action. See `holo/actions/dispatch.py` for the supported action types.
 
 ## Run
 
@@ -40,7 +40,7 @@ Edit `data/zone_config.json` (created on first run) to map each zone to a `shell
 python -m holo.app
 ```
 
-Starts a menu-bar icon (◎) with Start/Stop Listening controls. The app reads which mode the loaded `data/model.json` was trained in (`passive` or `probe`, recorded automatically by `holo.model.train`) and matches its runtime feature extraction to it — passive mode listens continuously with the same live adaptive noise filtering used during training; probe mode fires a chirp every `PROBE_POLL_INTERVAL_S` (0.5s by default, see `holo/config.py`) and classifies the response.
+Starts a menu-bar icon (◎) with Start/Stop Listening controls. The app reads which mode the loaded `~/Library/Application Support/Saber/model.json` was trained in (`passive` or `probe`, recorded automatically by `holo.model.train`) and matches its runtime feature extraction to it — passive mode listens continuously with the same live adaptive noise filtering used during training; probe mode fires a chirp every `PROBE_POLL_INTERVAL_S` (0.5s by default, see `holo/config.py`) and classifies the response.
 
 ## Build a standalone .app
 
