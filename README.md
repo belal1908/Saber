@@ -1,6 +1,6 @@
 # Saber
 
-A Python/macOS reimplementation of [Holo](https://github.com/JustinGamer191/Holo) — turns the desk around your MacBook into four tap zones (rear-left, rear-right, front-left, front-right) using acoustic classification of tap impulses picked up by the mic.
+A Python/macOS implementation — turns the desk around your MacBook into four tap zones (rear-left, rear-right, front-left, front-right) using acoustic classification of tap impulses picked up by the mic.
 
 Same pipeline as the original Swift app, different stack: `sounddevice` for mic capture, `numpy`/`scipy` for FFT, MFCC-style feature extraction, and adaptive noise filtering, `scikit-learn` for the zone classifier, `rumps` for the menu-bar shell.
 
