@@ -5,6 +5,8 @@ Requires a trained model at data/model.json (see holo/model/train.py).
 """
 from __future__ import annotations
 
+import time
+
 import rumps
 
 from holo.actions.dispatch import dispatch
@@ -14,7 +16,7 @@ from holo.audio.probe import emit_and_capture, response_window
 from holo.config import IMPULSE_WINDOW_MS, MODEL_PATH, PROBE_POLL_INTERVAL_S, SAMPLE_RATE
 from holo.dsp.adaptive_filter import AdaptiveNoiseFilter
 from holo.dsp.features import extract_features
-from holo.dsp.onset import OnsetDetector
+from holo.dsp.onset import ImpulseCapture, OnsetDetector
 from holo.model.classifier import ZoneClassifier
 
 
@@ -27,6 +29,7 @@ class HoloApp(rumps.App):
         self.listening = False
         self.window_len = int(SAMPLE_RATE * IMPULSE_WINDOW_MS / 1000)
         self.noise_filter = AdaptiveNoiseFilter(fft_size=self.window_len)
+        self.impulse_capture = ImpulseCapture(window_s=IMPULSE_WINDOW_MS / 1000)
 
         if MODEL_PATH.exists():
             self.classifier = ZoneClassifier.load()
@@ -65,24 +68,29 @@ class HoloApp(rumps.App):
         self.title = "◎"
 
     def poll_passive(self, _timer) -> None:
+        now = time.monotonic()
         try:
             block = self.capture.next_block(timeout=0.0)
         except Exception:
-            return
+            block = None
 
-        is_onset = self.detector.process(block)
+        if block is not None:
+            is_onset = self.detector.process(block)
+            self.impulse_capture.on_block(is_onset, now)
+            if not is_onset and not self.impulse_capture.pending:
+                background = self.capture.recent_audio()[-self.window_len :]
+                if len(background) == self.window_len:
+                    self.noise_filter.update(background)
 
-        if not is_onset:
-            background = self.capture.recent_audio()[-self.window_len :]
-            if len(background) == self.window_len:
-                self.noise_filter.update(background)
-            return
-
-        window = self.capture.recent_audio()[-self.window_len :]
-        if len(window) < self.window_len:
-            return
-        features = extract_features(window, noise_filter=self.noise_filter)
-        self._dispatch_for(features)
+        # Same "wait for the impulse to ring into the buffer" delay used by
+        # holo.model.train's blocking sleep, but non-blocking for the GUI timer.
+        if self.impulse_capture.ready(now):
+            self.impulse_capture.consume()
+            window = self.capture.recent_audio()[-self.window_len :]
+            if len(window) < self.window_len:
+                return
+            features = extract_features(window, noise_filter=self.noise_filter)
+            self._dispatch_for(features)
 
     def poll_probe(self, _timer) -> None:
         recording = emit_and_capture(device=self.capture.device)

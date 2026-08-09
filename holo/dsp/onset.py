@@ -47,3 +47,33 @@ class OnsetDetector:
             ) * self._noise_floor + self.noise_floor_alpha * level
 
         return is_onset
+
+
+@dataclass
+class ImpulseCapture:
+    """Tracks the delay between detecting a tap onset and the point where a
+    full impulse window has accumulated in the ring buffer.
+
+    Feature extraction needs the window *following* an onset (the tap's
+    ring/decay), not the window ending at the instant of detection. In a
+    blocking context you'd just time.sleep(window_s) then read the buffer;
+    this is the same idea as a non-blocking state machine for poll-driven
+    callers (e.g. a GUI timer) that can't sleep on every tick.
+    """
+
+    window_s: float
+    deadline: float | None = field(default=None, init=False)
+
+    def on_block(self, is_onset: bool, now: float) -> None:
+        if is_onset and self.deadline is None:
+            self.deadline = now + self.window_s
+
+    @property
+    def pending(self) -> bool:
+        return self.deadline is not None
+
+    def ready(self, now: float) -> bool:
+        return self.deadline is not None and now >= self.deadline
+
+    def consume(self) -> None:
+        self.deadline = None
